@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Простейший Мессенджер</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #chat { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; }
+        #online { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; }
+        #message { width: 80%; }
+        #send { width: 18%; }
+        #container { display: flex; }
+        #left, #right { margin: 10px; }
+        #login { margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>Простейший Мессенджер</h1>
+    <div id="login">
+        <label for="username">Имя пользователя:</label>
+        <input type="text" id="username" placeholder="Введите имя" />
+        <button id="connect">Подключиться</button>
+    </div>
+    <div id="container" style="display:none;">
+        <div id="left">
+            <h3>Чат</h3>
+            <div id="chat"></div>
+            <input type="text" id="message" placeholder="Введите сообщение" />
+            <button id="send">Отправить</button>
+        </div>
+        <div id="right">
+            <h3>Онлайн</h3>
+            <div id="online"></div>
+        </div>
+    </div>
+    <script>
+        let ws;
+        let username = '';
+        let onlineUsers = new Set();
+        let isConnected = false;
+
+        document.getElementById('connect').onclick = function() {
+            if (isConnected) {
+                alert('Вы уже подключены.');
+                return;
+            }
+
+            username = document.getElementById('username').value.trim();
+            if (!username) {
+                alert('Введите имя пользователя');
+                return;
+            }
+            ws = new WebSocket(`ws://${window.location.host}/ws?id=${encodeURIComponent(username)}`);
+            ws.onopen = function() {
+                document.getElementById('container').style.display = 'flex';
+                document.getElementById('login').style.display = 'none'; // Скрываем форму входа
+                isConnected = true;
+            };
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                const chat = document.getElementById('chat');
+                if (data.type === 'message') {
+                    chat.innerHTML += `<p><strong>${data.id}:</strong> ${data.message}</p>`;
+                } else if (data.type === 'status') {
+                    chat.innerHTML += `<p><em>${data.message}</em></p>`;
+                    // Обновление списка онлайн пользователей
+                    if (data.message.includes('подключился')) {
+                        const user = data.message.match(/Пользователь (.+?) подключился/);
+                        if (user) {
+                            onlineUsers.add(user[1]);
+                        }
+                    } else if (data.message.includes('отключился')) {
+                        const user = data.message.match(/Пользователь (.+?) отключился/);
+                        if (user) {
+                            onlineUsers.delete(user[1]);
+                        }
+                    }
+                    renderOnline();
+                } else if (data.type === 'online_users') {
+                    // Установка списка онлайн пользователей
+                    onlineUsers = new Set(data.users);
+                    renderOnline();
+                } else if (data.type === 'error') {
+                    alert(data.message);
+                    ws.close();
+                }
+                chat.scrollTop = chat.scrollHeight; // Автоскролл
+            };
+            ws.onclose = function(event) {
+                if (event.wasClean) {
+                    alert('Соединение закрыто чисто.');
+                } else {
+                    alert('Соединение прервано.');
+                }
+                document.getElementById('container').style.display = 'none';
+                document.getElementById('login').style.display = 'block'; // Показываем форму входа
+                isConnected = false;
+                onlineUsers.clear();
+                renderOnline();
+            };
+        };
+
+        document.getElementById('send').onclick = function() {
+            const msg = document.getElementById('message').value.trim();
+            if (msg && ws && isConnected) {
+                ws.send(JSON.stringify({ message: msg }));
+                document.getElementById('message').value = '';
+            }
+        };
+
+        function renderOnline() {
+            const online = document.getElementById('online');
+            online.innerHTML = '';
+            onlineUsers.forEach(user => {
+                online.innerHTML += `<p>${user}</p>`;
+            });
+        }
+    </script>
+</body>
+</html>
