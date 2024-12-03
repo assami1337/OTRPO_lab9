@@ -5,16 +5,29 @@
 git clone https://github.com/assami1337/OTRPO_lab9.git
 cd OTRPO_lab9
 ```
-### 2. Установка зависимостей
+### 2. Создание виртуального окружения
+```bash
+  python3 -m venv venv
+```
+Активируйте виртуальное окружение:
+- Linux/macOS:
+```bash
+  source venv/bin/activate
+```
+- Windows:
+```bash
+  venv\Scripts\activate
+```
+### 3. Установка зависимостей
 Убедитесь, что у вас установлен Python 3.7 или выше. Установите необходимые зависимости:
 ```bash
 pip install -r requirements.txt
 ```
-### 3. Запустите redis
+### 4. Запустите redis
 
-### 4. Запуск сервера
+### 5. Запуск сервера
 ```bash
-python main.py
+python server.py
 ```
 ## Использование
 1. Перейдите на `http://localhost:8888`.
